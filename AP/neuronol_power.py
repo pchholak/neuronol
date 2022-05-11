@@ -32,6 +32,9 @@ def featureFunc_bandAbsolutePower(psds, freqs, band, channels=None, norm_and_log
     norm_and_log_density : bool | None
         Whether or not to normalize to bandwidth and log-transform absolute band power as done by
         Rangaswamy et al. 2002. None, default, does not.
+    compute_magnitude: bool | None
+        Whether to report magnitude (square root of absolute power) instead of absolute power in
+        the given frequency band. None, default, does not.
     plot_psd: bool | None
         Whether to plot the power spectral densities used for calculating the band absolute power.
         None, default, does not.
@@ -68,7 +71,7 @@ def featureFunc_bandAbsolutePower(psds, freqs, band, channels=None, norm_and_log
 
     # Scale and log
     if norm_and_log_density and norm_and_log_density is not None:
-        res = np.log(ap_band / (band[1] - band[0]))
+        res = np.log(res / (band[1] - band[0]))
 
     # Compute frequency magnitude (in μV)
     if compute_magnitude and compute_magnitude is not None:
