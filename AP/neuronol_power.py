@@ -1,12 +1,68 @@
 import mne
 import pickle
 import numpy as np
+import scipy as sp
 import os.path as op
 import matplotlib.pyplot as plt
 from scipy import signal
 
 plt.rcParams['figure.figsize'] = [8, 5]
 plt.rcParams['font.size'] = 14
+
+def featureFunc_dominantFrequency(psds, freqs, band, channels=None, plot_psd=None):
+    '''
+    Calculate the dominant frequency in the power spectrum in the given frequency band. The power
+    spectrum can be averaged over all channels as done by Saletu-Zyhlarz 2004 or a different
+    selection of channels can be used.
+
+    Parameters
+    ----------
+    psds : 2D array
+        The power spectral densities of all channels [n_channels, n_freqs].
+    freqs : 1D array
+        Frequencies in Hertz.
+    band : tuple
+        The lowest and highest frequencies to consider the power spectral densities over.
+    channels : list of int | None
+        Channel indices for channels to include (None, default, includes all).
+    plot_psd: bool | None
+        Whether to plot the power spectrum with the dominant frequency marked.
+        None, default, does not.
+
+    Returns
+    -------
+    df : scalar
+        The dominant frequency in the power spectrum in the given frequency band.
+    '''
+    if channels is None:
+        mean_psd = np.mean(psds, axis=0)
+    elif len(channels) > 1:
+        mean_psd = np.mean(psds[channels, :], axis=0)
+    else:
+        mean_psd = psds[channels, :].reshape((-1,))
+
+    # Isolate power spectrum in the given frequency band
+    inds_range = [(np.abs(freqs - band[0])).argmin(), (np.abs(freqs - band[1])).argmin()]
+    inds = np.arange(inds_range[0], inds_range[1]+1)
+    psd_band = mean_psd[inds]; f_band = freqs[inds]
+    print(f_band)
+
+    # Calculate dominant frequency
+    i_dom = psd_band.argmax()
+    df = f_band[i_dom]
+    P_dom = psd_band[i_dom]
+
+    # Plot FFT
+    if plot_psd and plot_psd is not None:
+        plt.figure()
+        plt.plot(freqs, mean_psd, color='k', lw=2)
+        plt.plot(f_band, psd_band, color='g', lw=3)
+        plt.scatter(df, P_dom, color='r', marker='d')
+        plt.xlabel('Frequency [Hz]')
+        plt.ylabel('Power Spectral Density [μV2/Hz]')
+        plt.tight_layout()
+        plt.show()
+    return df
 
 def featureFunc_bandAbsolutePower(psds, freqs, band, channels=None, norm_and_log_density=None,
                                   compute_magnitude=None, plot_psd=None):
@@ -15,7 +71,7 @@ def featureFunc_bandAbsolutePower(psds, freqs, band, channels=None, norm_and_log
     by Bauer 2001. Optionally, normalize to bandwidth and log-transform absolute power density
     as done by Rangaswamy et al. 2002.
 
-    The power spectral density are averaged over channels. Estimates of power within a
+    The power spectral densities are averaged over channels. Estimates of power within a
     frequency band are estimated by integrating the averaged power spectral density over the
     corresponding frequency band intervals.
 
@@ -436,6 +492,7 @@ def _integrate_psd(psd, f, band):
     '''
     inds = [(np.abs(f - band[0])).argmin(), (np.abs(f - band[1])).argmin()]
     return np.trapz(psd[inds], f[inds])
+    # return sp.integrate.simps(psd[inds], f[inds])
 
 def __detrend(data, detrend_type='linear', bp=0):
     """
