@@ -9,6 +9,64 @@ from scipy import signal
 plt.rcParams['figure.figsize'] = [8, 5]
 plt.rcParams['font.size'] = 14
 
+def featureFunc_centroidFrequencyBand(psds, freqs, band, channels=None, plot_psd=None):
+    '''
+    Calculate the centroid frequency in the power spectrum of the given frequency band. The power
+    spectrum can be averaged over all channels as done by Saletu-Zyhlarz 2004 or a different
+    selection of channels can be used.
+
+    Parameters
+    ----------
+    psds : 2D array
+        The power spectral densities of all channels [n_channels, n_freqs].
+    freqs : 1D array
+        Frequencies in Hertz.
+    band : tuple
+        The lowest and highest frequencies to consider the power spectral densities over.
+    channels : list of int | None
+        Channel indices for channels to include (None, default, includes all).
+    plot_psd: bool | None
+        Whether to plot the power spectrum along with the centroid frequency marked.
+        None, default, does not.
+
+    Returns
+    -------
+    cf : scalar
+        The centroid frequency in the power spectrum of the given frequency band.
+    '''
+    # Average power spectrum over desired set of channels
+    if channels is None:
+        mean_psd = np.mean(psds, axis=0)
+    elif len(channels) > 1:
+        mean_psd = np.mean(psds[channels, :], axis=0)
+    else:
+        mean_psd = psds[channels, :].reshape((-1,))
+
+    # Isolate power spectrum of the given frequency band
+    inds_range = [(np.abs(freqs - band[0])).argmin(), (np.abs(freqs - band[1])).argmin()]
+    inds = np.arange(inds_range[0], inds_range[1]+1)
+    psd_band, f_band = mean_psd[inds], freqs[inds]
+
+    # Calculate the centroid frequency
+    cf = np.trapz(f_band * psd_band, f_band) / np.trapz(psd_band, f_band)
+
+    # Calculate the standard deviation of the centroid
+    sigma = np.sqrt(np.sum(np.square(f_band - cf) * psd_band))
+
+    # Plot FFT
+    if plot_psd and plot_psd is not None:
+        plt.figure()
+        plt.plot(freqs, mean_psd, color='k', lw=2)
+        plt.plot(f_band, psd_band, color='g', lw=3)
+        plt.axvline(x=cf, color='r', lw=2)
+        plt.xlim([freqs.min(), freqs.max()])
+        plt.xlabel('Frequency [Hz]')
+        plt.ylabel('Power Spectral Density [μV2/Hz]')
+        plt.tight_layout()
+        plt.show()
+
+    return cf, sigma
+
 def featureFunc_dominantFrequency(psds, freqs, band, channels=None, plot_psd=None):
     '''
     Calculate the dominant frequency in the power spectrum in the given frequency band. The power
@@ -26,7 +84,7 @@ def featureFunc_dominantFrequency(psds, freqs, band, channels=None, plot_psd=Non
     channels : list of int | None
         Channel indices for channels to include (None, default, includes all).
     plot_psd: bool | None
-        Whether to plot the power spectrum with the dominant frequency marked.
+        Whether to plot the power spectrum along with the dominant frequency marked.
         None, default, does not.
 
     Returns
@@ -34,6 +92,7 @@ def featureFunc_dominantFrequency(psds, freqs, band, channels=None, plot_psd=Non
     df : scalar
         The dominant frequency in the power spectrum in the given frequency band.
     '''
+    # Average power spectrum over desired set of channels
     if channels is None:
         mean_psd = np.mean(psds, axis=0)
     elif len(channels) > 1:
@@ -41,28 +100,39 @@ def featureFunc_dominantFrequency(psds, freqs, band, channels=None, plot_psd=Non
     else:
         mean_psd = psds[channels, :].reshape((-1,))
 
-    # Isolate power spectrum in the given frequency band
+    # Isolate power spectrum of the given frequency band
     inds_range = [(np.abs(freqs - band[0])).argmin(), (np.abs(freqs - band[1])).argmin()]
     inds = np.arange(inds_range[0], inds_range[1]+1)
     psd_band = mean_psd[inds]; f_band = freqs[inds]
-    print(f_band)
 
     # Calculate dominant frequency
-    i_dom = psd_band.argmax()
-    df = f_band[i_dom]
-    P_dom = psd_band[i_dom]
+    i_df = psd_band.argmax()
+    df = f_band[i_df]
+    psd_df = psd_band[i_df]
+
+    # Calculate absolute power of dominant frequency
+    delta_freq = f_band[1] - f_band[0]
+    ap_df = psd_df * delta_freq
+
+    # Calculate relative power of dominant frequency
+    tp = featureFunc_bandAbsolutePower(psds, freqs, band, channels=channels,
+                                       norm_and_log_density=None, compute_magnitude=None,
+                                       plot_psd=None)
+    rp_df = ap_df / tp
 
     # Plot FFT
     if plot_psd and plot_psd is not None:
         plt.figure()
         plt.plot(freqs, mean_psd, color='k', lw=2)
         plt.plot(f_band, psd_band, color='g', lw=3)
-        plt.scatter(df, P_dom, color='r', marker='d')
+        plt.scatter(df, psd_df, color='r', marker='o')
+        plt.xlim([freqs.min(), freqs.max()])
         plt.xlabel('Frequency [Hz]')
         plt.ylabel('Power Spectral Density [μV2/Hz]')
         plt.tight_layout()
         plt.show()
-    return df
+
+    return df, ap_df, rp_df
 
 def featureFunc_bandAbsolutePower(psds, freqs, band, channels=None, norm_and_log_density=None,
                                   compute_magnitude=None, plot_psd=None):
@@ -117,6 +187,7 @@ def featureFunc_bandAbsolutePower(psds, freqs, band, channels=None, norm_and_log
     if plot_psd and plot_psd is not None:
         plt.figure()
         plt.plot(freqs, mean_psd, color='k', lw=2)
+        plt.xlim([freqs.min(), freqs.max()])
         plt.xlabel('Frequency [Hz]')
         plt.ylabel('Power Spectral Density [μV2/Hz]')
         plt.tight_layout()
@@ -151,7 +222,7 @@ def featureFunc_bandRelativePower(psds_mean_epochs, freqs, band_target, band_ran
         Frequencies in Hertz.
     band_target : tuple
         The lowest and highest frequencies of the target band.
-    band_target : tuple
+    band_range : tuple
         The lowest and highest frequencies of the studied frequency range.
     channels : list of int | None
         Channel indices for channels to include (None, default, includes all).
@@ -490,7 +561,8 @@ def _integrate_psd(psd, f, band):
     '''
     Integrate power spectral densities over desired frequency band.
     '''
-    inds = [(np.abs(f - band[0])).argmin(), (np.abs(f - band[1])).argmin()]
+    inds_range = [(np.abs(f - band[0])).argmin(), (np.abs(f - band[1])).argmin()]
+    inds = np.arange(inds_range[0], inds_range[1]+1)
     return np.trapz(psd[inds], f[inds])
     # return sp.integrate.simps(psd[inds], f[inds])
 
