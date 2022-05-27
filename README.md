@@ -6,5 +6,4 @@ __aud-mne__ folder.
 
 Discrepancies in UCI dataset
 
-1. Data not bandpass filtered between 0.02 and 50 Hz as claimed in Zhang el al.
-1995.
+1. Data not bandpass filtered between 0.02 and 50 Hz as claimed in Zhang el al. 1995.
