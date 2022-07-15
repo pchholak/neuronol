@@ -289,7 +289,7 @@ def psd_M1(params, raw, plot_psd_epochs=None):
 
     # Get raw data
     raw = raw.copy()
-    # raw.del_proj(0) # delete Average EEG reference
+    raw.del_proj(0) # delete Average EEG reference
     raw_data = raw.get_data(picks='eeg')
     raw_data = raw_data[:, :int(Fs * T_max)]
     print('Shape of raw_data =', np.shape(raw_data))
@@ -332,7 +332,7 @@ def psd_M2(params, raw, plot_psd_epochs=None):
 
     # Make a copy of raw data and delete projector for Average EEG reference
     raw = raw.copy()
-    # raw.del_proj(0) # delete Average EEG reference
+    raw.del_proj(0) # delete Average EEG reference
 
     # Rename EEG channels
     channel_renaming_dict = {name: name.replace('EEG 0', '') for name in raw.ch_names}
@@ -391,7 +391,7 @@ def psd_M3(params, raw, plot_psd_epochs=None):
 
     # Get raw data
     raw = raw.copy()
-    # raw.del_proj(0) # Delete Average EEG reference
+    raw.del_proj(0) # Delete Average EEG reference
     raw_data = raw.get_data(picks='eeg')
     raw_data = raw_data[:, :int(Fs * T_max)]
     print('Shape of raw_data =', np.shape(raw_data))
@@ -433,7 +433,7 @@ def psd_M4(params, raw, plot_psd_epochs=None):
 
     # Get raw data
     raw = raw.copy()
-    # raw.del_proj(0) # Delete Average EEG reference
+    raw.del_proj(0) # Delete Average EEG reference
     raw_data = raw.get_data(picks='eeg')
     raw_data = raw_data[:, :int(Fs * T_max)]
     print('Shape of raw_data =', np.shape(raw_data))
@@ -477,7 +477,7 @@ def psd_M5(params, raw, plot_psd_epochs=None):
 
     # Get raw data
     raw = raw.copy()
-    # raw.del_proj(0) # delete Average EEG reference
+    raw.del_proj(0) # delete Average EEG reference
     raw_data = raw.get_data(picks='eeg')
     raw_data = raw_data[:, :int(Fs * T_max)]
     print('Shape of raw_data =', np.shape(raw_data))
