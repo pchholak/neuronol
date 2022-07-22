@@ -187,7 +187,8 @@ def featureFunc_bandAbsolutePower(psds, freqs, band, channels=None, norm_and_log
     if plot_psd and plot_psd is not None:
         plt.figure()
         plt.plot(freqs, mean_psd, color='k', lw=2)
-        plt.xlim([freqs.min(), freqs.max()])
+        plt.xlim([0, 50])
+        # plt.xlim([freqs.min(), freqs.max()])
         plt.xlabel('Frequency [Hz]')
         plt.ylabel('Power Spectral Density [μV2/Hz]')
         plt.tight_layout()
@@ -334,10 +335,6 @@ def psd_M2(params, raw, plot_psd_epochs=None):
     raw = raw.copy()
     # raw.del_proj(0) # delete Average EEG reference
 
-    # Rename EEG channels
-    channel_renaming_dict = {name: name.replace('EEG 0', '') for name in raw.ch_names}
-    _ = raw.rename_channels(channel_renaming_dict) # happens in-place
-
     # Get anodes and cathodes of bipolar montage
     bipolar_cnx = params['bipolar_connections']
     anode = []; cathode = []
@@ -347,6 +344,8 @@ def psd_M2(params, raw, plot_psd_epochs=None):
     # Set referencing as bipolar
     raw.load_data()
     raw_bip_ref = mne.set_bipolar_reference(raw, anode=anode, cathode=cathode)
+    # raw_bip_ref.drop_channels('M2')
+    # print(raw_bip_ref.ch_names)
 
     # Get raw data
     raw_data = raw_bip_ref.get_data(picks='eeg')
@@ -500,6 +499,11 @@ def psd_M5(params, raw, plot_psd_epochs=None):
     psds_mean_epochs = np.mean(psds, axis=0) # Average psds over epochs
 
     return psds_mean_epochs, freqs
+
+def save_bipolar_connections(cnx, fname_bipolar_connections='fname.pickle'):
+    with open(fname_bipolar_connections, 'wb') as f:
+        pickle.dump(cnx, f, pickle.HIGHEST_PROTOCOL)
+    return None
 
 def load_bipolar_connections(fname_bipolar_connections):
     with open(fname_bipolar_connections, 'rb') as f:
